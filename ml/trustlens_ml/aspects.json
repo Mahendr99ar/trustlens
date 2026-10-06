@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "aspects": {
+    "quality": ["quality", "well made", "well-made", "build", "built", "sturdy", "flimsy", "cheaply made", "cheap plastic", "material", "craftsmanship", "solid"],
+    "value": ["price", "value", "worth", "money", "expensive", "overpriced", "cheap", "affordable", "bargain", "deal"],
+    "durability": ["durable", "durability", "broke", "broken", "lasted", "stopped working", "fell apart", "wear", "tear", "months later", "died"],
+    "battery": ["battery", "charge", "charging", "charger", "battery life", "mah", "drains"],
+    "sound": ["sound", "audio", "bass", "volume", "noise", "noisy", "loud", "speaker", "mic", "microphone"],
+    "display": ["screen", "display", "brightness", "resolution", "picture"],
+    "performance": ["performance", "fast", "slow", "speed", "lag", "laggy", "powerful", "works great", "works well", "efficient"],
+    "size_fit": ["size", "fit", "fits", "fitting", "small", "large", "tight", "loose", "runs big", "runs small", "length", "width"],
+    "comfort": ["comfortable", "comfort", "uncomfortable", "soft", "itchy", "ergonomic", "cushion"],
+    "ease_of_use": ["easy to use", "easy to install", "setup", "set up", "install", "instructions", "user friendly", "complicated", "intuitive", "assemble", "assembly"],
+    "design": ["design", "look", "looks", "color", "colour", "style", "stylish", "beautiful", "pretty", "ugly", "finish"],
+    "delivery": ["delivery", "delivered", "shipping", "shipped", "arrived", "package", "packaging", "packed", "box", "damaged"],
+    "service": ["customer service", "seller", "support", "refund", "return", "replacement", "warranty", "responded"]
+  }
+}

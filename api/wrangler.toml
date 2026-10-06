@@ -1,0 +1,19 @@
+name = "trustlens-api"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+
+[vars]
+# Comma-separated list of origins allowed to call the API from a browser. Extensions are always allowed.
+ALLOWED_ORIGINS = "*"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "trustlens"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+
+# TOKEN_SECRET is a secret, not a var:  npx wrangler secret put TOKEN_SECRET

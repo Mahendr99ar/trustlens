@@ -1,0 +1,12 @@
+node_modules/
+__pycache__/
+*.pyc
+.wrangler/
+.dev.vars
+api/.dev.vars
+extension/dist/
+data/
+models/
+export/
+*.parquet
+*.onnx

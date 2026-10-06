@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrustLens — Review Trust Checker</title>
+<meta name="description" content="Paste a product review to see whether it looks AI-written and what it says about each aspect. The model runs in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#F3F5F7; --surface:#FFFFFF; --ink:#1F2A37; --muted:#5B6774; --line:#D5DCE3;
+  --real:#0F766E; --real-soft:#E7F5F3; --ai:#B45309; --ai-soft:#FEF3E2; --focus:#2563EB;
+  --font:"Onest", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --page:#11161C; --surface:#18202A; --ink:#E6EBF0; --muted:#9AA8B6; --line:#2A3542;
+         --real:#34B3A6; --real-soft:#12312E; --ai:#F59E0B; --ai-soft:#3A2A10; --focus:#60A5FA; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);font:400 16px/1.55 var(--font)}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+header.top{display:flex;justify-content:space-between;align-items:center;padding:18px 0}
+.mark{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-.01em}
+.mark img{width:26px;height:26px;border-radius:7px}
+nav{display:flex;gap:18px;font-size:15px}
+nav a{color:var(--muted);text-decoration:none}
+nav a:hover{color:var(--ink);text-decoration:underline}
+
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;padding:34px 0 20px;align-items:start}
+h1{font-size:clamp(32px,4.6vw,50px);line-height:1.08;letter-spacing:-.03em;margin:0 0 14px;font-weight:800;max-width:15ch}
+.lede{color:var(--muted);margin:0 0 22px;max-width:52ch}
+label.lbl{font-weight:600;display:block;margin-bottom:8px}
+textarea{width:100%;min-height:170px;resize:vertical;border:1px solid var(--line);border-radius:12px;background:var(--surface);
+  color:var(--ink);font:400 16px/1.5 var(--font);padding:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+button.primary{border:0;border-radius:10px;background:var(--ink);color:var(--page);font:600 16px var(--font);padding:11px 18px;cursor:pointer}
+button.primary:disabled{opacity:.55;cursor:progress}
+.examples{display:flex;gap:8px;flex-wrap:wrap}
+.examples button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;font:500 14px var(--font);padding:6px 12px;cursor:pointer}
+.examples button:hover{border-color:var(--ink)}
+.hint{color:var(--muted);font-size:14px}
+
+/* the verdict: one scale from genuine to AI-written */
+.verdict{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px}
+.verdict .state{font-size:15px;color:var(--muted);min-height:22px}
+.score{font-size:clamp(40px,6vw,64px);font-weight:800;letter-spacing:-.04em;line-height:1;margin:6px 0 4px}
+.score.ai{color:var(--ai)} .score.real{color:var(--real)}
+.scale{position:relative;height:14px;border-radius:7px;margin:18px 0 8px;
+  background:linear-gradient(90deg,var(--real) 0%,var(--real-soft) 45%,var(--ai-soft) 55%,var(--ai) 100%)}
+.scale .thr{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--ink);opacity:.5}
+.scale .dot{position:absolute;top:50%;width:26px;height:26px;border-radius:50%;background:var(--surface);border:4px solid var(--ink);
+  transform:translate(-50%,-50%);transition:left .5s cubic-bezier(.2,.8,.2,1)}
+.ends{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.aspects{margin-top:20px;border-top:1px solid var(--line);padding-top:14px}
+.aspects h3{margin:0 0 10px;font-size:15px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 11px;margin:0 6px 8px 0;font-size:14px;font-weight:500}
+.chip.pos{background:var(--real-soft);color:var(--real)} .chip.neg{background:var(--ai-soft);color:var(--ai)}
+.chip.neu{background:var(--page);color:var(--muted);border:1px solid var(--line)}
+@media (prefers-reduced-motion:reduce){.scale .dot{transition:none}}
+
+section.block{padding:44px 0;border-top:1px solid var(--line);margin-top:36px}
+h2{font-size:28px;letter-spacing:-.02em;margin:0 0 8px}
+.lookup{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.lookup input{flex:1;min-width:220px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:500 16px var(--font);padding:11px 14px}
+.report{margin-top:16px}
+.stat-row{display:flex;gap:28px;flex-wrap:wrap}
+.stat-row b{display:block;font-size:30px;letter-spacing:-.02em}
+.stat-row span{color:var(--muted);font-size:14px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin:20px 0 0;padding:0;list-style:none;counter-reset:s}
+.steps li{counter-increment:s;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.steps li::before{content:counter(s);display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;
+  background:var(--ink);color:var(--page);font-weight:700;font-size:14px;margin-bottom:8px}
+.steps b{display:block;margin-bottom:4px}
+.steps span{color:var(--muted);font-size:15px}
+table{border-collapse:collapse;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:16px;font-size:15px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line)}
+th{font-size:13px;color:var(--muted);font-weight:600}
+td.n{font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+.note{color:var(--muted);font-size:14px;max-width:70ch}
+ol.install{padding-left:20px} ol.install li{margin-bottom:6px}
+footer{color:var(--muted);font-size:14px;padding:26px 0 40px;border-top:1px solid var(--line);margin-top:20px}
+.err{color:var(--ai)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:860px){ .hero{grid-template-columns:1fr} .steps{grid-template-columns:1fr 1fr} }
+@media (max-width:520px){ .steps{grid-template-columns:1fr} nav a.opt{display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="mark"><img src="icon.png" alt="" width="26" height="26">TrustLens</div>
+    <nav><a href="#check">Check a product</a><a class="opt" href="#how">How it works</a><a href="#install">Get the extension</a>
+      <a id="gh" href="#">GitHub</a></nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div>
+        <h1>Is this review written by a person?</h1>
+        <p class="lede">Paste any product review. A model trained on real Amazon reviews and LLM-written ones estimates how likely it is to be AI-generated, and pulls out what it says about battery, build, value and more. It runs entirely in your browser; nothing you paste is sent anywhere.</p>
+        <label class="lbl" for="review">Review text</label>
+        <textarea id="review" placeholder="Paste a review here…"></textarea>
+        <div class="row">
+          <button class="primary" id="go">Check review</button>
+          <div class="examples" aria-label="Example reviews">
+            <button type="button" data-ex="0">Example: enthusiastic</button>
+            <button type="button" data-ex="1">Example: detailed complaint</button>
+          </div>
+        </div>
+        <p class="hint" id="loadhint">The first check downloads the model (about 60 MB); after that it is cached.</p>
+      </div>
+
+      <div class="verdict" aria-live="polite">
+        <div class="state" id="state">Paste a review and press Check review.</div>
+        <div class="score" id="score">–</div>
+        <div class="scale" aria-hidden="true"><span class="thr" id="thr" style="left:70%"></span><span class="dot" id="dot" style="left:50%"></span></div>
+        <div class="ends"><span>Looks human-written</span><span>Looks AI-written</span></div>
+        <div class="aspects" id="aspects" hidden><h3>What this review says</h3><div id="chips"></div></div>
+      </div>
+    </div>
+
+    <section class="block" id="check">
+      <h2>Check a product</h2>
+      <p class="note">Enter an Amazon ASIN (the 10-character code after <code>/dp/</code> in the product URL). You will see results only for products whose reviews TrustLens extension users have already viewed.</p>
+      <form class="lookup" id="lookup">
+        <label for="asin" class="sr">ASIN</label>
+        <input id="asin" placeholder="e.g. B0C1234567" maxlength="10" autocomplete="off">
+        <button class="primary" type="submit">Show report</button>
+      </form>
+      <div class="report" id="report"></div>
+    </section>
+
+    <section class="block" id="how">
+      <h2>How it works</h2>
+      <ol class="steps">
+        <li><b>Real and AI-written reviews</b><span>Genuine reviews from the Amazon Reviews 2023 dataset, plus reviews written by several open LLMs, matched in star rating and length.</span></li>
+        <li><b>A small transformer learns the difference</b><span>Fine-tuned and tested on products, and on an LLM, it never saw during training.</span></li>
+        <li><b>Shrunk to run in a browser</b><span>Exported to ONNX and quantized to 8-bit, then run with Transformers.js on your device.</span></li>
+        <li><b>Shared scores, not text</b><span>The extension sends only scores to a Cloudflare Worker, which builds a trust report per product.</span></li>
+      </ol>
+      <h2 style="margin-top:34px">Measured results</h2>
+      <div id="metrics"><p class="note">Loading the model's evaluation results…</p></div>
+    </section>
+
+    <section class="block" id="install">
+      <h2>Get the Chrome extension</h2>
+      <p class="note">The extension marks each review on an Amazon product page and shows a trust-adjusted rating.</p>
+      <ol class="install">
+        <li>Download <code>trustlens-extension.zip</code> from the <a id="rel" href="#">latest GitHub release</a> and unzip it.</li>
+        <li>Open <code>chrome://extensions</code> and turn on <b>Developer mode</b>.</li>
+        <li>Click <b>Load unpacked</b> and choose the unzipped folder.</li>
+        <li>Open any Amazon product page and scroll to the reviews.</li>
+      </ol>
+    </section>
+  </main>
+
+  <footer>TrustLens is a student research project. Scores are statistical estimates, not proof that a review is fake.
+    Training data: Amazon Reviews 2023 (McAuley Lab, UCSD).</footer>
+</div>
+
+<script type="module">
+// ===== Edit after deploying (see docs/GO_LIVE.md) =====
+const CONFIG = {
+  API_BASE: "",                                         // e.g. https://trustlens-api.<you>.workers.dev
+  DETECTOR_MODEL: "Mahendr99ar/trustlens-detector",
+  ASPECT_MODEL: "Mahendr99ar/trustlens-aspects",
+  MODEL_HOST: "https://huggingface.co/",
+  GITHUB: "https://github.com/Mahendr99ar/trustlens",
+  TRANSFORMERS_URL: "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1",
+  WASM_PATHS: "",                                       // leave empty: the runtime fetches its WebAssembly from the CDN
+};
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+$("#gh").href = CONFIG.GITHUB; $("#rel").href = CONFIG.GITHUB + "/releases/latest";
+
+const LABEL = { quality: "Build quality", value: "Value for money", durability: "Durability", battery: "Battery", sound: "Sound",
+  display: "Display", performance: "Performance", size_fit: "Size & fit", comfort: "Comfort", ease_of_use: "Ease of use",
+  design: "Look & design", delivery: "Delivery & packaging", service: "Seller & support" };
+// Example reviews written for this demo (not real customer reviews)
+const EXAMPLES = [
+  "Absolutely love these headphones! The sound quality is incredible, the battery life is amazing, and they are so comfortable to wear all day. Truly the best purchase I have made this year. Highly recommend to everyone!",
+  "Bought these for the gym. Fit is fine but the left earbud started cutting out after about 5 weeks, and the charging case lid is already loose. Sound is ok for the price, bass is weak. Support replied in 2 days and sent a replacement, so 3 stars.",
+];
+
+// ---- aspect rules: same as ml/trustlens_ml/aspects.py ----
+const ASPECTS = (await (await fetch("aspects.json")).json()).aspects;
+const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const PATTERNS = Object.entries(ASPECTS).map(([a, kws]) => [a, new RegExp("\\b(" + [...kws].sort((x, y) => y.length - x.length).map(reEsc).join("|") + ")\\b", "i")]);
+const sentences = (t) => t.split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter((s) => s.length >= 3).map((s) => s.slice(0, 300));
+
+let models = null;
+async function load() {
+  if (models) return models;
+  models = (async () => {
+    const { pipeline, env } = await import(CONFIG.TRANSFORMERS_URL);
+    env.allowLocalModels = false;
+    env.remoteHost = CONFIG.MODEL_HOST;
+    if (CONFIG.WASM_PATHS) env.backends.onnx.wasm.wasmPaths = CONFIG.WASM_PATHS;
+    const [detector, aspects] = await Promise.all([
+      pipeline("text-classification", CONFIG.DETECTOR_MODEL, { dtype: "q8" }),
+      pipeline("text-classification", CONFIG.ASPECT_MODEL, { dtype: "q8" }),
+    ]);
+    let threshold = 0.7;
+    try { threshold = (await (await fetch(`${CONFIG.MODEL_HOST}${CONFIG.DETECTOR_MODEL}/resolve/main/trustlens.json`)).json()).threshold ?? 0.7; } catch {}
+    return { detector, aspects, threshold };
+  })();
+  try { return await models; } catch (e) { models = null; throw e; }
+}
+
+async function check() {
+  const text = $("#review").value.trim();
+  if (text.split(/\s+/).length < 8) { $("#state").textContent = "Paste at least a sentence or two — very short texts can't be judged."; return; }
+  const btn = $("#go"); btn.disabled = true;
+  $("#state").textContent = models ? "Checking…" : "Downloading the model (first time only)…";
+  try {
+    const m = await load();
+    const t0 = performance.now();
+    const [scores] = await m.detector([text], { top_k: null });
+    const p = (scores.find((s) => s.label === "ai") || { score: 0 }).score;
+    const pairs = sentences(text).flatMap((s) => PATTERNS.filter(([, re]) => re.test(s)).map(([a]) => ({ a, input: `${a.replace("_", " ")}: ${s}` }))).slice(0, 12);
+    const by = {};
+    if (pairs.length) {
+      const out = await m.aspects(pairs.map((x) => x.input), { top_k: 1 });
+      pairs.forEach((x, i) => { const top = Array.isArray(out[i]) ? out[i][0] : out[i]; (by[x.a] ||= []).push({ positive: 1, neutral: 0, negative: -1 }[top.label] ?? 0); });
+    }
+    const ms = Math.round(performance.now() - t0);
+    const flagged = p >= m.threshold;
+    $("#score").textContent = `${Math.round(p * 100)}%`;
+    $("#score").className = "score " + (flagged ? "ai" : "real");
+    $("#state").textContent = (flagged ? "Likely AI-written." : "Looks human-written.") + ` Estimated chance it was AI-generated, computed on your device in ${ms} ms.`;
+    $("#dot").style.left = `${Math.min(98, Math.max(2, p * 100))}%`;
+    $("#thr").style.left = `${m.threshold * 100}%`;
+    $("#thr").title = `Flag threshold (${Math.round(m.threshold * 100)}%)`;
+    const chips = Object.entries(by).map(([a, v]) => {
+      const mean = v.reduce((x, y) => x + y, 0) / v.length, cls = mean > 0.2 ? "pos" : mean < -0.2 ? "neg" : "neu";
+      return `<span class="chip ${cls}">${{ pos: "+", neg: "−", neu: "•" }[cls]} ${esc(LABEL[a] || a)}</span>`;
+    });
+    $("#aspects").hidden = !chips.length;
+    $("#chips").innerHTML = chips.join("");
+  } catch (e) {
+    $("#state").innerHTML = `<span class="err">Could not run the model: ${esc(e.message)}. Check your connection and try again.</span>`;
+  } finally { btn.disabled = false; }
+}
+$("#go").onclick = check;
+document.querySelectorAll("[data-ex]").forEach((b) => (b.onclick = () => { $("#review").value = EXAMPLES[+b.dataset.ex]; check(); }));
+
+$("#lookup").onsubmit = async (e) => {
+  e.preventDefault();
+  const asin = $("#asin").value.trim().toUpperCase(), out = $("#report");
+  if (!/^[A-Z0-9]{10}$/.test(asin)) { out.innerHTML = `<p class="err">An ASIN is 10 letters and digits, like B0C1234567.</p>`; return; }
+  if (!CONFIG.API_BASE) { out.innerHTML = `<p class="note">The report service is not connected on this site yet.</p>`; return; }
+  out.innerHTML = `<p class="note">Loading…</p>`;
+  try {
+    const r = await (await fetch(`${CONFIG.API_BASE}/v1/products/${asin}/report`)).json();
+    if (r.error) throw new Error(r.error);
+    if (!r.reviews_analyzed) { out.innerHTML = `<p class="note">No reviews for ${esc(asin)} have been scored yet. Open the product page with the extension installed to add them.</p>`; return; }
+    out.innerHTML = `<div class="stat-row">
+      <div><b>${r.trust_rating}★</b><span>trust-adjusted rating</span></div>
+      <div><b>${r.shown_rating}★</b><span>average of scored reviews</span></div>
+      <div><b>${r.suspicious_pct}%</b><span>look AI-written (${r.suspicious} of ${r.reviews_analyzed})</span></div></div>
+      ${r.aspects.length ? `<table><thead><tr><th>Aspect</th><th>Positive</th><th>Negative</th><th>Neutral</th></tr></thead><tbody>${r.aspects.slice(0, 8).map((a) =>
+        `<tr><td>${esc(LABEL[a.aspect] || a.aspect)}</td><td class="n">${a.pos}</td><td class="n">${a.neg}</td><td class="n">${a.neu}</td></tr>`).join("")}</tbody></table>` : ""}`;
+  } catch (err) { out.innerHTML = `<p class="err">Could not load the report: ${esc(err.message)}</p>`; }
+};
+
+// Evaluation numbers come straight from the published model repo, so the page never shows made-up figures.
+(async () => {
+  const el = $("#metrics");
+  try {
+    const base = `${CONFIG.MODEL_HOST}${CONFIG.DETECTOR_MODEL}/resolve/main/`;
+    const [m, x] = await Promise.all([fetch(base + "metrics.json").then((r) => r.json()), fetch(base + "export_report.json").then((r) => r.json()).catch(() => null)]);
+    const rows = [["test", "New products, same LLMs"], ["test_unseen_generator", "An LLM never seen in training"], ["test_external", "Older public dataset (2022)"]]
+      .filter(([k]) => m[k]).map(([k, label]) => `<tr><td>${label}</td><td class="n">${m[k].roc_auc ?? "–"}</td><td class="n">${m[k].f1}</td><td class="n">${Math.round(m[k].recall_ai * 100)}%</td><td class="n">${Math.round((m[k].false_alarm_rate_real ?? 0) * 100)}%</td></tr>`).join("");
+    el.innerHTML = `<table><thead><tr><th>Test set</th><th>ROC-AUC</th><th>F1</th><th>AI reviews caught</th><th>Real reviews wrongly flagged</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="note">Threshold chosen on validation data to flag at most ${Math.round(m.max_fpr_target * 100)}% of genuine reviews. Base model: ${esc(m.base_model)}.
+      ${x ? `Browser model: ${x.int8_mb} MB (int8, ${x.size_reduction_x}× smaller than fp32), ${x.int8_top1_agreement_with_fp32 * 100}% agreement with the full-precision model.` : ""}</p>`;
+  } catch { el.innerHTML = `<p class="note">Evaluation results will appear here once the model is published.</p>`; }
+})();
+</script>
+</body>
+</html>
