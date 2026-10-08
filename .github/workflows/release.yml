@@ -1,0 +1,14 @@
+# Push a tag like v0.1.0 to build the extension and attach trustlens-extension.zip to a GitHub release.
+name: Release extension
+on: { push: { tags: ["v*"] } }
+permissions: { contents: write }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: cd extension && npm ci && npm run build && cd dist && zip -qr ../../trustlens-extension.zip .
+      - uses: softprops/action-gh-release@v2
+        with: { files: trustlens-extension.zip }
