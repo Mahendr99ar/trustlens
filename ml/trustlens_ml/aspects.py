@@ -26,7 +26,7 @@ def find_aspects(sentence):
 
 
 def find_aspect_terms(sentence):
-    """[(aspect, matched keyword)] — the keyword is what an ABSA teacher model is asked about."""
+    """[(aspect, matched keyword)]. The keyword is what the ABSA teacher model is asked about."""
     out = []
     for a, p in _PATTERNS.items():
         m = p.search(sentence)

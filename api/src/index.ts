@@ -1,5 +1,5 @@
 /**
- * TrustLens API — Cloudflare Worker (free tier) with D1 (SQLite) and KV.
+ * TrustLens API: a Cloudflare Worker (free tier) with D1 (SQLite) and KV.
  *
  * POST /v1/install                 -> { token }                    one per extension install, rate-limited per IP
  * POST /v1/reviews   (Bearer)      -> { stored }                   scores computed in the browser, no review text stored

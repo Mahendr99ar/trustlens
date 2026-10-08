@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TrustLens — Review Trust Checker</title>
+<title>TrustLens: is this review AI-written?</title>
 <meta name="description" content="Paste a product review to see whether it looks AI-written and what it says about each aspect. The model runs in your browser.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -112,7 +112,7 @@ footer{color:var(--muted);font-size:14px;padding:26px 0 40px;border-top:1px soli
             <button type="button" data-ex="1">Example: detailed complaint</button>
           </div>
         </div>
-        <p class="hint" id="loadhint">The first check downloads the model (about 60 MB); after that it is cached.</p>
+        <p class="hint" id="loadhint">The first check downloads both models (about 66 MB); after that it is cached.</p>
       </div>
 
       <div class="verdict" aria-live="polite">
@@ -139,7 +139,7 @@ footer{color:var(--muted);font-size:14px;padding:26px 0 40px;border-top:1px soli
       <h2>How it works</h2>
       <ol class="steps">
         <li><b>Real and AI-written reviews</b><span>Genuine reviews from the Amazon Reviews 2023 dataset, plus reviews written by several open LLMs, matched in star rating and length.</span></li>
-        <li><b>A small transformer learns the difference</b><span>Fine-tuned and tested on products, and on an LLM, it never saw during training.</span></li>
+        <li><b>A small transformer learns the difference</b><span>Tested on products, and on one LLM, that it never saw in training.</span></li>
         <li><b>Shrunk to run in a browser</b><span>Exported to ONNX and quantized to 8-bit, then run with Transformers.js on your device.</span></li>
         <li><b>Shared scores, not text</b><span>The extension sends only scores to a Cloudflare Worker, which builds a trust report per product.</span></li>
       </ol>
@@ -164,11 +164,11 @@ footer{color:var(--muted);font-size:14px;padding:26px 0 40px;border-top:1px soli
 </div>
 
 <script type="module">
-// ===== Edit after deploying (see docs/GO_LIVE.md) =====
+// Set these after deploying (docs/GO_LIVE.md).
 const CONFIG = {
   API_BASE: "",                                         // e.g. https://trustlens-api.<you>.workers.dev
-  DETECTOR_MODEL: "Mahendr99ar/trustlens-detector",
-  ASPECT_MODEL: "Mahendr99ar/trustlens-aspects",
+  DETECTOR_MODEL: "Mahendra99ar/trustlens-detector",
+  ASPECT_MODEL: "Mahendra99ar/trustlens-aspects",
   MODEL_HOST: "https://huggingface.co/",
   GITHUB: "https://github.com/Mahendr99ar/trustlens",
   TRANSFORMERS_URL: "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1",
@@ -181,13 +181,13 @@ $("#gh").href = CONFIG.GITHUB; $("#rel").href = CONFIG.GITHUB + "/releases/lates
 const LABEL = { quality: "Build quality", value: "Value for money", durability: "Durability", battery: "Battery", sound: "Sound",
   display: "Display", performance: "Performance", size_fit: "Size & fit", comfort: "Comfort", ease_of_use: "Ease of use",
   design: "Look & design", delivery: "Delivery & packaging", service: "Seller & support" };
-// Example reviews written for this demo (not real customer reviews)
+// Example reviews written for this demo, not real customer reviews
 const EXAMPLES = [
   "Absolutely love these headphones! The sound quality is incredible, the battery life is amazing, and they are so comfortable to wear all day. Truly the best purchase I have made this year. Highly recommend to everyone!",
   "Bought these for the gym. Fit is fine but the left earbud started cutting out after about 5 weeks, and the charging case lid is already loose. Sound is ok for the price, bass is weak. Support replied in 2 days and sent a replacement, so 3 stars.",
 ];
 
-// ---- aspect rules: same as ml/trustlens_ml/aspects.py ----
+// Aspect rules, same as ml/trustlens_ml/aspects.py
 const ASPECTS = (await (await fetch("aspects.json")).json()).aspects;
 const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const PATTERNS = Object.entries(ASPECTS).map(([a, kws]) => [a, new RegExp("\\b(" + [...kws].sort((x, y) => y.length - x.length).map(reEsc).join("|") + ")\\b", "i")]);
@@ -214,7 +214,7 @@ async function load() {
 
 async function check() {
   const text = $("#review").value.trim();
-  if (text.split(/\s+/).length < 8) { $("#state").textContent = "Paste at least a sentence or two — very short texts can't be judged."; return; }
+  if (text.split(/\s+/).length < 8) { $("#state").textContent = "Paste at least a sentence or two. Very short texts can't be judged."; return; }
   const btn = $("#go"); btn.disabled = true;
   $("#state").textContent = models ? "Checking…" : "Downloading the model (first time only)…";
   try {
@@ -268,7 +268,7 @@ $("#lookup").onsubmit = async (e) => {
   } catch (err) { out.innerHTML = `<p class="err">Could not load the report: ${esc(err.message)}</p>`; }
 };
 
-// Evaluation numbers come straight from the published model repo, so the page never shows made-up figures.
+// Metrics are read from metrics.json in the model repo, so they always match the published model.
 (async () => {
   const el = $("#metrics");
   try {

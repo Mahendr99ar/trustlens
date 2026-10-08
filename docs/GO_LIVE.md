@@ -1,4 +1,4 @@
-# Go live — step by step (all free)
+# Going live (all free tiers)
 
 | What | Where it runs | Cost |
 |---|---|---|
@@ -79,7 +79,7 @@ Commit both.
 ## Troubleshooting
 | Problem | Fix |
 |---|---|
-| Website says "Could not run the model" | Check the model names in `CONFIG`. Open `https://huggingface.co/<HF_USER>/trustlens-detector` — the repo must be public. |
+| Website says "Could not run the model" | Check the model names in `CONFIG`. Open `https://huggingface.co/<HF_USER>/trustlens-detector`; the repo must be public. |
 | Extension card never appears | Amazon changes its page layout sometimes. Open DevTools → Console on the product page and look for `TrustLens` messages. Reviews must be in elements with `data-hook="review"`. |
 | Extension shows results but no shared report | `API_BASE` is empty or wrong in `config.js`; check `/health` in the browser. |
 | `wrangler deploy` fails with an id error | The two ids in `wrangler.toml` were not replaced. |

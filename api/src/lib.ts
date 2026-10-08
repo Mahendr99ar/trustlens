@@ -109,7 +109,7 @@ export function buildReport(asin: string, rows: StoredRow[]): Report {
   };
 }
 
-// ---- Install tokens: stateless HMAC-signed tokens, "<base64url(payload)>.<base64url(sig)>" ----
+// Install tokens are stateless and HMAC-signed: "<base64url(payload)>.<base64url(sig)>"
 
 const enc = new TextEncoder();
 const b64url = (buf: ArrayBuffer | Uint8Array) =>

@@ -24,7 +24,7 @@ def words(s):
 
 
 def length_match(df, seed, bin_width=10):
-    """Downsample so real and AI reviews have the same length histogram (removes the length shortcut)."""
+    """Downsample so real and AI reviews have the same word-count histogram. report.json shows how much a length-only model still gets."""
     df = df.assign(_bin=(words(df.text) // bin_width).clip(upper=40))
     keep = []
     for _, g in df.groupby("_bin"):

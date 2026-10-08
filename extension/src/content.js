@@ -25,7 +25,7 @@
     }).filter((r) => r.id && r.text.length > 20);
   }
 
-  // ---------- UI (shadow DOM so Amazon's CSS cannot touch it) ----------
+  // UI lives in a shadow root so Amazon's CSS cannot restyle it.
   const host = document.createElement("div");
   host.id = "trustlens-panel";
   const root = host.attachShadow({ mode: "open" });

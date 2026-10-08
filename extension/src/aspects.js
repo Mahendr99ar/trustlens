@@ -15,7 +15,7 @@ export function findAspects(sentence) {
   return PATTERNS.filter(([, p]) => p.test(sentence)).map(([a]) => a);
 }
 
-/** [{aspect, sentence, input}] — `input` is exactly what the aspect model was trained on: "<aspect>: <sentence>". */
+/** [{aspect, sentence, input}]. `input` has the format the aspect model was trained on: "<aspect>: <sentence>". */
 export function aspectInputs(text, maxPairs = 12) {
   const out = [];
   for (const s of splitSentences(text)) {
