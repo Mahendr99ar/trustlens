@@ -3,170 +3,239 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
 <title>TrustLens: is this review AI-written?</title>
 <meta name="description" content="Paste a product review to see whether it looks AI-written and what it says about each aspect. The model runs in your browser.">
+<link rel="icon" href="icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+/* A proofreader's desk: the review is set in a reading serif and gets marked up in place.
+   Teal-green and violet are the verdict; blue and orange are what the review says. */
 :root{
-  --page:#F3F5F7; --surface:#FFFFFF; --ink:#1F2A37; --muted:#5B6774; --line:#D5DCE3;
-  --real:#0F766E; --real-soft:#E7F5F3; --ai:#B45309; --ai-soft:#FEF3E2; --focus:#2563EB;
-  --font:"Onest", system-ui, -apple-system, "Segoe UI", sans-serif;
-}
-@media (prefers-color-scheme: dark){
-  :root{ --page:#11161C; --surface:#18202A; --ink:#E6EBF0; --muted:#9AA8B6; --line:#2A3542;
-         --real:#34B3A6; --real-soft:#12312E; --ai:#F59E0B; --ai-soft:#3A2A10; --focus:#60A5FA; }
+  color-scheme:light;
+  --page:#F4F5F2; --paper:#FFFFFF; --ink:#14213D; --muted:#56607A; --line:#D9DDE5; --line-soft:#E9ECF1;
+  --human:#127A5B; --machine:#9B1C87;
+  --good:#2457C5; --good-tint:#E3EBFA; --bad:#C2410C; --bad-tint:#FBE7DC; --neutral-tint:#ECEEF3;
+  --focus:#2F5BEA;
+  --ui:"Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --read:"Newsreader", Georgia, "Times New Roman", serif;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--page);color:var(--ink);font:400 16px/1.55 var(--font)}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--page);color:var(--ink);font:400 16px/1.55 var(--ui)}
 a{color:inherit}
+button{font:inherit;color:inherit}
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:6px}
-.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
-header.top{display:flex;justify-content:space-between;align-items:center;padding:18px 0}
-.mark{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:-.01em}
-.mark img{width:26px;height:26px;border-radius:7px}
-nav{display:flex;gap:18px;font-size:15px}
+.wrap{max-width:1160px;margin:0 auto;padding:0 24px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+code{font-size:.92em;background:var(--line-soft);padding:1px 5px;border-radius:4px}
+
+header.top{display:flex;justify-content:space-between;align-items:center;padding:20px 0}
+.mark{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:-.02em;text-decoration:none}
+.mark img{width:28px;height:28px;border-radius:8px}
+nav{display:flex;gap:22px;font-size:15px}
 nav a{color:var(--muted);text-decoration:none}
-nav a:hover{color:var(--ink);text-decoration:underline}
+nav a:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
 
-.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;padding:34px 0 20px;align-items:start}
-h1{font-size:clamp(32px,4.6vw,50px);line-height:1.08;letter-spacing:-.03em;margin:0 0 14px;font-weight:800;max-width:15ch}
-.lede{color:var(--muted);margin:0 0 22px;max-width:52ch}
-label.lbl{font-weight:600;display:block;margin-bottom:8px}
-textarea{width:100%;min-height:170px;resize:vertical;border:1px solid var(--line);border-radius:12px;background:var(--surface);
-  color:var(--ink);font:400 16px/1.5 var(--font);padding:14px}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
-button.primary{border:0;border-radius:10px;background:var(--ink);color:var(--page);font:600 16px var(--font);padding:11px 18px;cursor:pointer}
-button.primary:disabled{opacity:.55;cursor:progress}
-.examples{display:flex;gap:8px;flex-wrap:wrap}
-.examples button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;font:500 14px var(--font);padding:6px 12px;cursor:pointer}
-.examples button:hover{border-color:var(--ink)}
-.hint{color:var(--muted);font-size:14px}
+/* hero */
+.intro{padding:40px 0 26px;max-width:760px}
+h1{font-size:clamp(36px,5.4vw,64px);line-height:1.02;letter-spacing:-.035em;margin:0 0 16px;font-weight:800}
+.lede{color:var(--muted);margin:0;font-size:18px;max-width:58ch}
 
-/* the verdict: one scale from genuine to AI-written */
-.verdict{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px}
-.verdict .state{font-size:15px;color:var(--muted);min-height:22px}
-.score{font-size:clamp(40px,6vw,64px);font-weight:800;letter-spacing:-.04em;line-height:1;margin:6px 0 4px}
-.score.ai{color:var(--ai)} .score.real{color:var(--real)}
-.scale{position:relative;height:14px;border-radius:7px;margin:18px 0 8px;
-  background:linear-gradient(90deg,var(--real) 0%,var(--real-soft) 45%,var(--ai-soft) 55%,var(--ai) 100%)}
-.scale .thr{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--ink);opacity:.5}
-.scale .dot{position:absolute;top:50%;width:26px;height:26px;border-radius:50%;background:var(--surface);border:4px solid var(--ink);
-  transform:translate(-50%,-50%);transition:left .5s cubic-bezier(.2,.8,.2,1)}
+.desk{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:22px;align-items:start}
+
+/* the review slip */
+.slip{background:var(--paper);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.slip-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line-soft)}
+.slip-head label,.slip-head .title{font-weight:600;font-size:15px}
+.slip-head .count{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+textarea{display:block;width:100%;min-height:250px;resize:vertical;border:0;background:transparent;color:var(--ink);
+  font:400 20px/1.6 var(--read);padding:20px 22px}
+textarea::placeholder{color:var(--muted);opacity:.7}
+textarea:focus{outline:none}
+.slip:focus-within{border-color:var(--ink)}
+.marked{display:none;padding:20px 22px 24px;font:400 20px/1.75 var(--read)}
+.slip.done textarea{display:none}
+.slip.done .marked{display:block}
+.marked mark{background:none;color:inherit;border-bottom:3px solid;padding:0 1px;position:relative}
+.marked mark.pos{border-color:var(--good);background:var(--good-tint)}
+.marked mark.neg{border-color:var(--bad);background:var(--bad-tint)}
+.marked mark.neu{border-color:var(--muted);background:var(--neutral-tint)}
+.marked mark sup{font:600 11px/1 var(--ui);margin-left:3px;color:var(--muted);vertical-align:super}
+.slip-foot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px 18px;border-top:1px solid var(--line-soft)}
+.btn{border:0;border-radius:999px;padding:11px 20px;font-weight:600;font-size:16px;cursor:pointer}
+.btn.main{background:var(--ink);color:var(--paper)}
+.btn.main:hover{background:var(--focus);color:#fff}
+.btn.main:disabled{opacity:.55;cursor:progress}
+.btn.quiet{background:transparent;border:1.5px solid var(--line);padding:9.5px 16px;font-size:15px}
+.btn.quiet:hover{border-color:var(--ink)}
+.slip-foot .hint{color:var(--muted);font-size:14px;margin-left:auto}
+
+/* verdict */
+.verdict{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:22px 22px 24px;position:sticky;top:16px}
+.verdict .state{color:var(--muted);font-size:15px;min-height:46px}
+.big{display:flex;align-items:baseline;gap:12px;margin:4px 0 2px}
+.pct{font-size:clamp(64px,8vw,96px);font-weight:800;letter-spacing:-.05em;line-height:.95;font-variant-numeric:tabular-nums}
+.pct.human{color:var(--human)} .pct.machine{color:var(--machine)}
+.pct-label{color:var(--muted);font-size:15px;line-height:1.3;max-width:13ch}
+.call{font-size:22px;font-weight:700;letter-spacing:-.015em;margin:10px 0 0;min-height:30px}
+.meter{position:relative;height:10px;border-radius:5px;margin:22px 0 8px;background:linear-gradient(90deg,var(--human),var(--line) 50%,var(--machine))}
+.meter .thr{position:absolute;top:-7px;bottom:-7px;width:2px;background:var(--ink)}
+.meter .thr span{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--muted);white-space:nowrap}
+.meter .dot{position:absolute;top:50%;width:22px;height:22px;border-radius:50%;background:var(--paper);border:4px solid var(--ink);
+  transform:translate(-50%,-50%);transition:left .6s cubic-bezier(.2,.8,.2,1)}
 .ends{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
-.aspects{margin-top:20px;border-top:1px solid var(--line);padding-top:14px}
-.aspects h3{margin:0 0 10px;font-size:15px}
-.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 11px;margin:0 6px 8px 0;font-size:14px;font-weight:500}
-.chip.pos{background:var(--real-soft);color:var(--real)} .chip.neg{background:var(--ai-soft);color:var(--ai)}
-.chip.neu{background:var(--page);color:var(--muted);border:1px solid var(--line)}
-@media (prefers-reduced-motion:reduce){.scale .dot{transition:none}}
+.says{margin-top:22px;border-top:1px solid var(--line-soft);padding-top:16px}
+.says h3{margin:0 0 10px;font-size:16px}
+.says ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.says li{display:flex;align-items:center;gap:10px;font-size:15px}
+.says li i{width:10px;height:10px;border-radius:50%;flex:none}
+.says li.pos i{background:var(--good)} .says li.neg i{background:var(--bad)} .says li.neu i{background:var(--muted)}
+.says li span{color:var(--muted);margin-left:auto;font-size:14px}
+.says .none{color:var(--muted);font-size:15px}
+.fine{color:var(--muted);font-size:13px;margin:16px 0 0}
+@media (prefers-reduced-motion:reduce){.meter .dot{transition:none}}
 
-section.block{padding:44px 0;border-top:1px solid var(--line);margin-top:36px}
-h2{font-size:28px;letter-spacing:-.02em;margin:0 0 8px}
-.lookup{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-.lookup input{flex:1;min-width:220px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:500 16px var(--font);padding:11px 14px}
-.report{margin-top:16px}
-.stat-row{display:flex;gap:28px;flex-wrap:wrap}
-.stat-row b{display:block;font-size:30px;letter-spacing:-.02em}
-.stat-row span{color:var(--muted);font-size:14px}
-.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin:20px 0 0;padding:0;list-style:none;counter-reset:s}
-.steps li{counter-increment:s;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
-.steps li::before{content:counter(s);display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;
-  background:var(--ink);color:var(--page);font-weight:700;font-size:14px;margin-bottom:8px}
-.steps b{display:block;margin-bottom:4px}
-.steps span{color:var(--muted);font-size:15px}
-table{border-collapse:collapse;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:16px;font-size:15px}
-th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line)}
+/* sections */
+section.block{padding:64px 0 8px}
+h2{font-size:clamp(26px,3.2vw,36px);letter-spacing:-.025em;margin:0 0 10px;font-weight:800}
+.sub{color:var(--muted);margin:0 0 22px;max-width:66ch}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start}
+
+table{border-collapse:collapse;width:100%;font-size:15px}
+caption{text-align:left;color:var(--muted);font-size:14px;padding-bottom:10px}
+th,td{text-align:left;padding:12px 10px 12px 0;border-bottom:1px solid var(--line)}
 th{font-size:13px;color:var(--muted);font-weight:600}
-td.n{font-variant-numeric:tabular-nums}
-tr:last-child td{border-bottom:0}
-.note{color:var(--muted);font-size:14px;max-width:70ch}
-ol.install{padding-left:20px} ol.install li{margin-bottom:6px}
-footer{color:var(--muted);font-size:14px;padding:26px 0 40px;border-top:1px solid var(--line);margin-top:20px}
-.err{color:var(--ai)}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-@media (max-width:860px){ .hero{grid-template-columns:1fr} .steps{grid-template-columns:1fr 1fr} }
-@media (max-width:520px){ .steps{grid-template-columns:1fr} nav a.opt{display:none} }
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+td.strong{font-weight:700}
+.note{color:var(--muted);font-size:14px;max-width:68ch}
+
+ol.steps{list-style:none;margin:0;padding:0;counter-reset:s;display:grid;gap:18px}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:44px 1fr;gap:6px}
+ol.steps li::before{content:counter(s);font:800 34px/1 var(--ui);color:var(--line);letter-spacing:-.04em}
+ol.steps b{display:block;font-size:17px}
+ol.steps span{color:var(--muted)}
+
+.lookup{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;max-width:760px}
+.lookup input{flex:1;min-width:240px;border:1px solid var(--line);border-radius:999px;background:var(--paper);color:var(--ink);font:500 16px var(--ui);padding:12px 18px}
+.lookup input:focus{outline:none;border-color:var(--ink)}
+.report{margin-top:18px;max-width:760px}
+.stats{display:flex;gap:36px;flex-wrap:wrap;margin-bottom:8px}
+.stats b{display:block;font-size:40px;letter-spacing:-.03em;font-weight:800;font-variant-numeric:tabular-nums}
+.stats span{color:var(--muted);font-size:14px}
+.err{color:var(--machine)}
+
+.install{background:var(--ink);color:var(--paper);border-radius:22px;padding:36px;margin-top:64px;display:grid;grid-template-columns:1fr 1.2fr;gap:36px}
+.install h2{color:var(--paper)}
+.install p{color:color-mix(in srgb,var(--paper) 75%,transparent);margin:0}
+.install ol{margin:0;padding-left:22px;display:grid;gap:10px}
+.install code{background:color-mix(in srgb,var(--paper) 14%,transparent);color:var(--paper)}
+.install a{color:var(--paper)}
+footer{color:var(--muted);font-size:14px;padding:36px 0 44px}
+
+@media (max-width:900px){
+  .desk,.split,.install{grid-template-columns:1fr}
+  .verdict{position:static}
+  .slip-foot .hint{margin-left:0;width:100%}
+}
+@media (max-width:560px){
+  nav a.opt{display:none}
+  textarea,.marked{font-size:18px}
+  .install{padding:26px}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
-    <div class="mark"><img src="icon.png" alt="" width="26" height="26">TrustLens</div>
-    <nav><a href="#check">Check a product</a><a class="opt" href="#how">How it works</a><a href="#install">Get the extension</a>
+    <a class="mark" href="#"><img src="icon.png" alt="" width="28" height="28">TrustLens</a>
+    <nav><a href="#check">Check a product</a><a class="opt" href="#how">How it works</a><a class="opt" href="#install">Extension</a>
       <a id="gh" href="#">GitHub</a></nav>
   </header>
 
   <main>
-    <div class="hero">
-      <div>
-        <h1>Is this review written by a person?</h1>
-        <p class="lede">Paste any product review. A model trained on real Amazon reviews and LLM-written ones estimates how likely it is to be AI-generated, and pulls out what it says about battery, build, value and more. It runs entirely in your browser; nothing you paste is sent anywhere.</p>
-        <label class="lbl" for="review">Review text</label>
+    <div class="intro">
+      <h1>Was this review written by a person?</h1>
+      <p class="lede">Paste a product review. A small model trained on real Amazon reviews and LLM-written ones estimates how likely it is to be machine-written, then marks what the review says about battery, build, value and more. It runs in your browser, so nothing you paste is sent anywhere.</p>
+    </div>
+
+    <div class="desk">
+      <div class="slip" id="slip">
+        <div class="slip-head"><label for="review" id="slip-title">Review text</label><span class="count" id="count">0 words</span></div>
         <textarea id="review" placeholder="Paste a review here…"></textarea>
-        <div class="row">
-          <button class="primary" id="go">Check review</button>
-          <div class="examples" aria-label="Example reviews">
-            <button type="button" data-ex="0">Example: enthusiastic</button>
-            <button type="button" data-ex="1">Example: detailed complaint</button>
-          </div>
+        <div class="marked" id="marked" aria-label="Review with aspects marked"></div>
+        <div class="slip-foot">
+          <button class="btn main" id="go">Check review</button>
+          <button class="btn quiet" type="button" id="edit" hidden>Edit text</button>
+          <button class="btn quiet" type="button" data-ex="0">Try a glowing one</button>
+          <button class="btn quiet" type="button" data-ex="1">Try a detailed complaint</button>
+          <span class="hint" id="loadhint">First check downloads both models, about 66 MB.</span>
         </div>
-        <p class="hint" id="loadhint">The first check downloads both models (about 66 MB); after that it is cached.</p>
       </div>
 
-      <div class="verdict" aria-live="polite">
-        <div class="state" id="state">Paste a review and press Check review.</div>
-        <div class="score" id="score">–</div>
-        <div class="scale" aria-hidden="true"><span class="thr" id="thr" style="left:70%"></span><span class="dot" id="dot" style="left:50%"></span></div>
-        <div class="ends"><span>Looks human-written</span><span>Looks AI-written</span></div>
-        <div class="aspects" id="aspects" hidden><h3>What this review says</h3><div id="chips"></div></div>
-      </div>
+      <aside class="verdict" aria-live="polite">
+        <div class="state" id="state">The verdict appears here.</div>
+        <div class="big"><span class="pct" id="pct">–</span><span class="pct-label">AI score, out of 100</span></div>
+        <p class="call" id="call"></p>
+        <div class="meter" aria-hidden="true"><span class="thr" id="thr" style="left:70%"><span id="thr-label">flag line</span></span><span class="dot" id="dot" style="left:50%"></span></div>
+        <div class="ends"><span>Reads human</span><span>Reads machine-written</span></div>
+        <div class="says" id="says" hidden><h3>What it says</h3><ul id="aspect-list"></ul></div>
+        <p class="fine">The score is the model's output, not a calibrated probability. It is evidence, not proof: polished human writing can score high.</p>
+      </aside>
     </div>
+
+    <section class="block" id="how">
+      <div class="split">
+        <div>
+          <h2>How it works</h2>
+          <ol class="steps">
+            <li><div><b>Real and AI-written reviews</b><span>47,896 genuine reviews from Amazon Reviews 2023, plus 17,453 written by three open LLMs, matched in star rating and length.</span></div></li>
+            <li><div><b>A small transformer learns the difference</b><span>MiniLM fine-tuned, then tested on products, and on one LLM, that it never saw in training.</span></div></li>
+            <li><div><b>A second model reads the aspects</b><span>Distilled from a DeBERTa aspect-sentiment model, so it can say "battery: negative" from one sentence.</span></div></li>
+            <li><div><b>Shrunk to run in a browser</b><span>Both exported to ONNX and quantized to 8-bit, then run with Transformers.js on your device.</span></div></li>
+          </ol>
+        </div>
+        <div>
+          <h2>Measured results</h2>
+          <div id="metrics"><p class="note">Loading the model's evaluation results…</p></div>
+        </div>
+      </div>
+    </section>
 
     <section class="block" id="check">
       <h2>Check a product</h2>
-      <p class="note">Enter an Amazon ASIN (the 10-character code after <code>/dp/</code> in the product URL). You will see results only for products whose reviews TrustLens extension users have already viewed.</p>
+      <p class="sub">Paste an Amazon product link or its ASIN. Reports exist for products whose reviews TrustLens extension users have already opened; the extension shares scores, never review text.</p>
       <form class="lookup" id="lookup">
-        <label for="asin" class="sr">ASIN</label>
-        <input id="asin" placeholder="e.g. B0C1234567" maxlength="10" autocomplete="off">
-        <button class="primary" type="submit">Show report</button>
+        <label for="asin" class="sr">Amazon product link or ASIN</label>
+        <input id="asin" placeholder="amazon.in/dp/B0C1234567 or B0C1234567" maxlength="500" autocomplete="off">
+        <button class="btn main" type="submit">Show report</button>
       </form>
       <div class="report" id="report"></div>
     </section>
 
-    <section class="block" id="how">
-      <h2>How it works</h2>
-      <ol class="steps">
-        <li><b>Real and AI-written reviews</b><span>Genuine reviews from the Amazon Reviews 2023 dataset, plus reviews written by several open LLMs, matched in star rating and length.</span></li>
-        <li><b>A small transformer learns the difference</b><span>Tested on products, and on one LLM, that it never saw in training.</span></li>
-        <li><b>Shrunk to run in a browser</b><span>Exported to ONNX and quantized to 8-bit, then run with Transformers.js on your device.</span></li>
-        <li><b>Shared scores, not text</b><span>The extension sends only scores to a Cloudflare Worker, which builds a trust report per product.</span></li>
-      </ol>
-      <h2 style="margin-top:34px">Measured results</h2>
-      <div id="metrics"><p class="note">Loading the model's evaluation results…</p></div>
-    </section>
-
-    <section class="block" id="install">
-      <h2>Get the Chrome extension</h2>
-      <p class="note">The extension marks each review on an Amazon product page and shows a trust-adjusted rating.</p>
-      <ol class="install">
-        <li>Download <code>trustlens-extension.zip</code> from the <a id="rel" href="#">latest GitHub release</a> and unzip it.</li>
-        <li>Open <code>chrome://extensions</code> and turn on <b>Developer mode</b>.</li>
-        <li>Click <b>Load unpacked</b> and choose the unzipped folder.</li>
-        <li>Open any Amazon product page and scroll to the reviews.</li>
+    <section class="install" id="install">
+      <div>
+        <h2>Use it on Amazon</h2>
+        <p>The Chrome extension scores every review on a product page, marks the suspicious ones, and shows a rating recomputed from the reviews that read human.</p>
+      </div>
+      <ol>
+        <li>Download <code>trustlens-extension.zip</code> from the <a id="rel" href="#">latest release</a> and unzip it.</li>
+        <li>Open <code>chrome://extensions</code> and turn on Developer mode.</li>
+        <li>Click Load unpacked and choose the unzipped folder.</li>
+        <li>Open an Amazon product page and scroll to the reviews.</li>
       </ol>
     </section>
   </main>
 
-  <footer>TrustLens is a student research project. Scores are statistical estimates, not proof that a review is fake.
-    Training data: Amazon Reviews 2023 (McAuley Lab, UCSD).</footer>
+  <footer>Built by Mahendra Meena as a student project. Training data: Amazon Reviews 2023 (McAuley Lab, UCSD).</footer>
 </div>
 
 <script type="module">
 // Set these after deploying (docs/GO_LIVE.md).
 const CONFIG = {
-  API_BASE: "",                                         // e.g. https://trustlens-api.<you>.workers.dev
+  API_BASE: "https://trustlens-api.mahendra99ar.workers.dev",
   DETECTOR_MODEL: "Mahendra99ar/trustlens-detector",
   ASPECT_MODEL: "Mahendra99ar/trustlens-aspects",
   MODEL_HOST: "https://huggingface.co/",
@@ -212,58 +281,104 @@ async function load() {
   try { return await models; } catch (e) { models = null; throw e; }
 }
 
+const words = () => ($("#review").value.trim().match(/\S+/g) || []).length;
+$("#review").addEventListener("input", () => { $("#count").textContent = `${words()} words`; });
+
+// Rebuild the review with each aspect keyword marked in its sentiment colour.
+function markUp(sents, marks) {
+  return sents.map((s, i) => {
+    const hits = marks.filter((m) => m.i === i);
+    if (!hits.length) return esc(s);
+    let html = "", pos = 0;
+    const spans = hits.map((h) => { const m = s.match(PATTERNS.find(([a]) => a === h.a)[1]); return m ? { start: m.index, end: m.index + m[0].length, ...h } : null; })
+      .filter(Boolean).sort((x, y) => x.start - y.start).filter((h, k, arr) => k === 0 || h.start >= arr[k - 1].end);
+    for (const h of spans) {
+      html += esc(s.slice(pos, h.start)) + `<mark class="${h.cls}" title="${esc(LABEL[h.a] || h.a)}: ${h.word}">${esc(s.slice(h.start, h.end))}<sup>${esc(LABEL[h.a] || h.a)}</sup></mark>`;
+      pos = h.end;
+    }
+    return html + esc(s.slice(pos));
+  }).join(" ");
+}
+
 async function check() {
   const text = $("#review").value.trim();
-  if (text.split(/\s+/).length < 8) { $("#state").textContent = "Paste at least a sentence or two. Very short texts can't be judged."; return; }
+  if (words() < 8) { $("#state").textContent = "Paste at least a sentence or two. Very short texts can't be judged."; $("#review").focus(); return; }
   const btn = $("#go"); btn.disabled = true;
-  $("#state").textContent = models ? "Checking…" : "Downloading the model (first time only)…";
+  $("#state").textContent = models ? "Checking…" : "Downloading the models (first time only, about 66 MB)…";
   try {
     const m = await load();
     const t0 = performance.now();
     const [scores] = await m.detector([text], { top_k: null });
     const p = (scores.find((s) => s.label === "ai") || { score: 0 }).score;
-    const pairs = sentences(text).flatMap((s) => PATTERNS.filter(([, re]) => re.test(s)).map(([a]) => ({ a, input: `${a.replace("_", " ")}: ${s}` }))).slice(0, 12);
-    const by = {};
+    const sents = sentences(text);
+    const pairs = sents.flatMap((s, i) => PATTERNS.filter(([, re]) => re.test(s)).map(([a]) => ({ a, i, input: `${a.replace("_", " ")}: ${s}` }))).slice(0, 12);
+    const by = {}, marks = [];
     if (pairs.length) {
       const out = await m.aspects(pairs.map((x) => x.input), { top_k: 1 });
-      pairs.forEach((x, i) => { const top = Array.isArray(out[i]) ? out[i][0] : out[i]; (by[x.a] ||= []).push({ positive: 1, neutral: 0, negative: -1 }[top.label] ?? 0); });
+      pairs.forEach((x, k) => {
+        const top = Array.isArray(out[k]) ? out[k][0] : out[k];
+        const v = { positive: 1, neutral: 0, negative: -1 }[top.label] ?? 0;
+        (by[x.a] ||= []).push(v);
+        marks.push({ a: x.a, i: x.i, cls: v > 0 ? "pos" : v < 0 ? "neg" : "neu", word: top.label });
+      });
     }
     const ms = Math.round(performance.now() - t0);
     const flagged = p >= m.threshold;
-    $("#score").textContent = `${Math.round(p * 100)}%`;
-    $("#score").className = "score " + (flagged ? "ai" : "real");
-    $("#state").textContent = (flagged ? "Likely AI-written." : "Looks human-written.") + ` Estimated chance it was AI-generated, computed on your device in ${ms} ms.`;
+
+    $("#pct").textContent = `${Math.round(p * 100)}`;
+    $("#pct").className = "pct " + (flagged ? "machine" : "human");
+    $("#call").textContent = flagged ? "Likely written by an AI" : "Reads like a person wrote it";
+    $("#state").textContent = `Scored on your device in ${ms} ms. Reviews above the flag line (${Math.round(m.threshold * 100)}) are marked as AI-written.`;
     $("#dot").style.left = `${Math.min(98, Math.max(2, p * 100))}%`;
     $("#thr").style.left = `${m.threshold * 100}%`;
-    $("#thr").title = `Flag threshold (${Math.round(m.threshold * 100)}%)`;
-    const chips = Object.entries(by).map(([a, v]) => {
+    $("#thr-label").textContent = `flag line ${Math.round(m.threshold * 100)}`;
+
+    const items = Object.entries(by).map(([a, v]) => {
       const mean = v.reduce((x, y) => x + y, 0) / v.length, cls = mean > 0.2 ? "pos" : mean < -0.2 ? "neg" : "neu";
-      return `<span class="chip ${cls}">${{ pos: "+", neg: "−", neu: "•" }[cls]} ${esc(LABEL[a] || a)}</span>`;
+      return `<li class="${cls}"><i></i>${esc(LABEL[a] || a)}<span>${{ pos: "positive", neg: "negative", neu: "mixed" }[cls]}</span></li>`;
     });
-    $("#aspects").hidden = !chips.length;
-    $("#chips").innerHTML = chips.join("");
+    $("#says").hidden = false;
+    $("#aspect-list").innerHTML = items.length ? items.join("") : `<li class="none">No product aspects mentioned.</li>`;
+
+    $("#marked").innerHTML = markUp(sents, marks);
+    $("#slip").classList.add("done");
+    $("#slip-title").textContent = marks.length ? "Review, with aspects marked" : "Review";
+    $("#edit").hidden = false;
   } catch (e) {
     $("#state").innerHTML = `<span class="err">Could not run the model: ${esc(e.message)}. Check your connection and try again.</span>`;
   } finally { btn.disabled = false; }
 }
-$("#go").onclick = check;
-document.querySelectorAll("[data-ex]").forEach((b) => (b.onclick = () => { $("#review").value = EXAMPLES[+b.dataset.ex]; check(); }));
+$("#go").onclick = () => { if ($("#slip").classList.contains("done")) { $("#slip").classList.remove("done"); } check(); };
+$("#edit").onclick = () => { $("#slip").classList.remove("done"); $("#edit").hidden = true; $("#slip-title").textContent = "Review text"; $("#review").focus(); };
+document.querySelectorAll("[data-ex]").forEach((b) => (b.onclick = () => {
+  $("#review").value = EXAMPLES[+b.dataset.ex]; $("#count").textContent = `${words()} words`; $("#slip").classList.remove("done"); check();
+}));
 
 $("#lookup").onsubmit = async (e) => {
   e.preventDefault();
-  const asin = $("#asin").value.trim().toUpperCase(), out = $("#report");
-  if (!/^[A-Z0-9]{10}$/.test(asin)) { out.innerHTML = `<p class="err">An ASIN is 10 letters and digits, like B0C1234567.</p>`; return; }
-  if (!CONFIG.API_BASE) { out.innerHTML = `<p class="note">The report service is not connected on this site yet.</p>`; return; }
+  const raw = $("#asin").value.trim(), out = $("#report");
+  // accept a full product link (/dp/, /gp/product/, /product-reviews/) or a bare ASIN
+  const m = raw.match(/\/(?:dp|gp\/product|product-reviews|gp\/aw\/d)\/([A-Z0-9]{10})/i);
+  const asin = (m ? m[1] : raw).toUpperCase();
+  if (!/^[A-Z0-9]{10}$/.test(asin)) {
+    const short = /amzn\.|a\.co\//i.test(raw);
+    out.innerHTML = `<p class="err">${short
+      ? "Short share links (amzn.in/d/...) hide the product code. Open the link, then copy the full address from the browser bar."
+      : "Paste a product link that contains /dp/, or the 10-character ASIN, like B0C1234567."}</p>`;
+    return;
+  }
+  $("#asin").value = asin;
+  if (!CONFIG.API_BASE) { out.innerHTML = `<p class="note">Shared product reports are not switched on for this site yet. The review checker above works without them.</p>`; return; }
   out.innerHTML = `<p class="note">Loading…</p>`;
   try {
     const r = await (await fetch(`${CONFIG.API_BASE}/v1/products/${asin}/report`)).json();
     if (r.error) throw new Error(r.error);
     if (!r.reviews_analyzed) { out.innerHTML = `<p class="note">No reviews for ${esc(asin)} have been scored yet. Open the product page with the extension installed to add them.</p>`; return; }
-    out.innerHTML = `<div class="stat-row">
+    out.innerHTML = `<div class="stats">
       <div><b>${r.trust_rating}★</b><span>trust-adjusted rating</span></div>
       <div><b>${r.shown_rating}★</b><span>average of scored reviews</span></div>
-      <div><b>${r.suspicious_pct}%</b><span>look AI-written (${r.suspicious} of ${r.reviews_analyzed})</span></div></div>
-      ${r.aspects.length ? `<table><thead><tr><th>Aspect</th><th>Positive</th><th>Negative</th><th>Neutral</th></tr></thead><tbody>${r.aspects.slice(0, 8).map((a) =>
+      <div><b>${r.suspicious_pct}%</b><span>read machine-written (${r.suspicious} of ${r.reviews_analyzed})</span></div></div>
+      ${r.aspects.length ? `<table><thead><tr><th>Aspect</th><th class="n">Positive</th><th class="n">Negative</th><th class="n">Neutral</th></tr></thead><tbody>${r.aspects.slice(0, 8).map((a) =>
         `<tr><td>${esc(LABEL[a.aspect] || a.aspect)}</td><td class="n">${a.pos}</td><td class="n">${a.neg}</td><td class="n">${a.neu}</td></tr>`).join("")}</tbody></table>` : ""}`;
   } catch (err) { out.innerHTML = `<p class="err">Could not load the report: ${esc(err.message)}</p>`; }
 };
@@ -275,10 +390,10 @@ $("#lookup").onsubmit = async (e) => {
     const base = `${CONFIG.MODEL_HOST}${CONFIG.DETECTOR_MODEL}/resolve/main/`;
     const [m, x] = await Promise.all([fetch(base + "metrics.json").then((r) => r.json()), fetch(base + "export_report.json").then((r) => r.json()).catch(() => null)]);
     const rows = [["test", "New products, same LLMs"], ["test_unseen_generator", "An LLM never seen in training"], ["test_external", "Older public dataset (2022)"]]
-      .filter(([k]) => m[k]).map(([k, label]) => `<tr><td>${label}</td><td class="n">${m[k].roc_auc ?? "–"}</td><td class="n">${m[k].f1}</td><td class="n">${Math.round(m[k].recall_ai * 100)}%</td><td class="n">${Math.round((m[k].false_alarm_rate_real ?? 0) * 100)}%</td></tr>`).join("");
-    el.innerHTML = `<table><thead><tr><th>Test set</th><th>ROC-AUC</th><th>F1</th><th>AI reviews caught</th><th>Real reviews wrongly flagged</th></tr></thead><tbody>${rows}</tbody></table>
-      <p class="note">Threshold chosen on validation data to flag at most ${Math.round(m.max_fpr_target * 100)}% of genuine reviews. Base model: ${esc(m.base_model)}.
-      ${x ? `Browser model: ${x.int8_mb} MB (int8, ${x.size_reduction_x}× smaller than fp32), ${x.int8_top1_agreement_with_fp32 * 100}% agreement with the full-precision model.` : ""}</p>`;
+      .filter(([k]) => m[k]).map(([k, label]) => `<tr><td>${label}</td><td class="n strong">${m[k].roc_auc ?? "–"}</td><td class="n">${Math.round(m[k].recall_ai * 100)}%</td><td class="n">${Math.round((m[k].false_alarm_rate_real ?? 0) * 100)}%</td></tr>`).join("");
+    el.innerHTML = `<table><thead><tr><th>Test set</th><th class="n">ROC-AUC</th><th class="n">AI caught</th><th class="n">Humans flagged</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="note">The flag line is set on validation data so that at most ${Math.round(m.max_fpr_target * 100)}% of genuine reviews get flagged. The 2022 dataset was written by an older, smaller model, and this detector does poorly on it.
+      ${x ? `Browser model: ${x.int8_mb} MB in 8-bit, ${x.size_reduction_x}× smaller, agreeing with the full model on ${Math.round(x.int8_top1_agreement_with_fp32 * 1000) / 10}% of test reviews.` : ""}</p>`;
   } catch { el.innerHTML = `<p class="note">Evaluation results will appear here once the model is published.</p>`; }
 })();
 </script>
