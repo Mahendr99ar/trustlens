@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "TrustLens — Review Trust Checker",
+  "name": "TrustLens: AI review checker",
   "short_name": "TrustLens",
   "version": "0.1.0",
   "description": "Flags reviews that look AI-written and shows what genuine reviewers say, on Amazon product pages. Runs the model on your device.",

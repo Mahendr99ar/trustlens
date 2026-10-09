@@ -4,9 +4,10 @@
 (() => {
   const ASIN = (location.pathname.match(/\/(?:dp|gp\/product|product-reviews)\/([A-Z0-9]{10})/) || [])[1];
   if (!ASIN) return;
+  console.info(`TrustLens: watching product ${ASIN}`);
 
   const seen = new Map(); // review id -> result
-  let pending = null, busy = false, threshold = null, lastPage = null, lastReport = null;
+  let lastCount = -1, pending = null, busy = false, threshold = null, lastPage = null, lastReport = null;
 
   const ASPECT_LABEL = {
     quality: "Build quality", value: "Value for money", durability: "Durability", battery: "Battery", sound: "Sound",
@@ -14,15 +15,27 @@
     ease_of_use: "Ease of use", design: "Look & design", delivery: "Delivery & packaging", service: "Seller & support",
   };
 
+  // Amazon has several review layouts; try the known containers and de-duplicate nested matches.
+  const REVIEW_SEL = '[data-hook="review"], [id^="customer_review-"], li.review[id], div.review[id]';
+  const hash = (t) => { let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return "h" + (h >>> 0).toString(36); };
+  const reviewId = (el, text) => (el.id || el.getAttribute("data-review-id") || el.querySelector("[id^='customer_review']")?.id || "")
+    .replace(/^customer_review(_foreign)?-/, "") || hash(text);
+  // Fallback when Amazon renames the body hook: the longest block of text inside the review.
+  const longestText = (el) => [...el.querySelectorAll("span, div, p")].filter((n) => !n.querySelector("span, div, p"))
+    .map((n) => n.innerText.trim()).sort((a, b) => b.length - a.length)[0] || "";
+  let raw = 0;
   function extract() {
-    return [...document.querySelectorAll('[data-hook="review"]')].map((el) => {
+    const els = [...document.querySelectorAll(REVIEW_SEL)].filter((el) => !el.parentElement?.closest(REVIEW_SEL));
+    raw = els.length;
+    return els.map((el) => {
       const starText = el.querySelector('[data-hook="review-star-rating"], [data-hook="cmps-review-star-rating"], .review-rating')?.textContent || "";
       const rating = parseFloat((starText.match(/(\d[.,]?\d?)/) || [])[1]?.replace(",", ".") || "") || null;
-      const body = el.querySelector('[data-hook="review-body"]');
+      const body = el.querySelector('[data-hook="review-body"], [data-hook="review-collapsed"], .review-text-content, .review-text');
       const titleEl = el.querySelector('[data-hook="review-title"]');
       const title = titleEl ? [...titleEl.querySelectorAll("span")].map((s) => s.textContent.trim()).filter(Boolean).pop() || "" : "";
-      return { el, id: el.id, rating, title, text: (body?.innerText || "").replace(/Read more$/i, "").trim() };
-    }).filter((r) => r.id && r.text.length > 20);
+      const text = ((body?.innerText || "").trim() || longestText(el)).replace(/Read more$/i, "").trim();
+      return { el, id: reviewId(el, text), rating, title, text };
+    }).filter((r) => r.text.length > 20);
   }
 
   // UI lives in a shadow root so Amazon's CSS cannot restyle it.
@@ -82,7 +95,7 @@
       ${aspects.length ? `<div class="muted" style="margin-top:6px">What genuine reviewers mention</div><table>${aspects.map((a) => `
         <tr><td style="width:40%">${esc(ASPECT_LABEL[a.aspect] || a.aspect)}</td>
         <td><div class="bar"><i class="pos" style="width:${(100 * a.pos) / a.mentions}%"></i><i class="neu" style="width:${(100 * a.neu) / a.mentions}%"></i><i class="neg" style="width:${(100 * a.neg) / a.mentions}%"></i></div></td>
-        <td class="n">${a.pos}↑ ${a.neg}↓</td></tr>`).join("")}</table>` : ""}
+        <td class="n" title="${a.pos} positive, ${a.neg} negative, ${a.neu} mixed">${a.pos + a.neg ? `${a.pos}↑ ${a.neg}↓` : `${a.neu} mixed`}</td></tr>`).join("")}</table>` : ""}
       <div class="foot">${s ? `Based on ${n} reviews scored by TrustLens users for this product.` : `Based on the ${n} reviews loaded on this page.`}
         Scores are model estimates, not proof of fraud.</div>`;
   }
@@ -92,18 +105,20 @@
     const b = document.createElement("span");
     b.className = "trustlens-badge";
     const flagged = res.ai_prob >= threshold;
-    b.textContent = flagged ? `TrustLens: looks AI-written (${Math.round(res.ai_prob * 100)}%)` : "TrustLens: looks genuine";
-    b.title = "Probability this review was written by an AI model, estimated on your device.";
+    b.textContent = flagged ? `TrustLens: reads AI-written (score ${Math.round(res.ai_prob * 100)})` : "TrustLens: reads human";
+    b.title = "AI score from the TrustLens model, computed on your device. Evidence, not proof.";
     b.style.cssText = `display:inline-block;margin:4px 8px;padding:2px 8px;border-radius:999px;font:600 12px system-ui,sans-serif;` +
       (flagged ? "background:#FEF3E2;color:#92400E;border:1px solid #F5C99B" : "background:#E7F5F3;color:#0F5F58;border:1px solid #B5DED8");
     (r.el.querySelector('[data-hook="review-title"]') || r.el.firstElementChild || r.el).after(b);
   }
 
   async function run() {
-    const fresh = extract().filter((r) => !seen.has(r.id));
+    const found = extract();
+    const fresh = found.filter((r) => !seen.has(r.id));
+    if (found.length !== lastCount) { lastCount = found.length; console.info(`TrustLens: ${found.length} reviews found on this page (${raw} review blocks matched)`); }
     if (!fresh.length) return;
     mount();
-    if (!lastPage) body.textContent = "Loading the on-device model (first time only, ~60 MB)…";
+    if (!lastPage) body.textContent = "Loading the on-device model (first time only, about 66 MB)…";
     const res = await chrome.runtime.sendMessage({
       type: "analyze-page", asin: ASIN,
       reviews: [...fresh.slice(0, 50)].map(({ id, rating, title, text }) => ({ id, rating, title, text })),
