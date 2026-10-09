@@ -1,7 +1,7 @@
 // Set these after deploying (docs/GO_LIVE.md).
 export const CONFIG = {
   // Your Cloudflare Worker URL, e.g. "https://trustlens-api.<your-subdomain>.workers.dev". Leave "" to run offline.
-  API_BASE: "",
+  API_BASE: "https://trustlens-api.mahendra99ar.workers.dev",
   // Hugging Face model repos created by ml/scripts/07_push_to_hub.py
   DETECTOR_MODEL: "Mahendra99ar/trustlens-detector",
   ASPECT_MODEL: "Mahendra99ar/trustlens-aspects",
